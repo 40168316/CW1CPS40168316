@@ -297,6 +297,8 @@ bool array2bmp(const std::string &filename, const vector<vec> &pixels, const siz
 
 int main(int argc, char **argv)
 {
+	auto start = system_clock::now();
+
 	random_device rd;
 	default_random_engine generator(rd());
 	uniform_real_distribution<double> distribution;
@@ -348,6 +350,13 @@ int main(int argc, char **argv)
 		}
 	}
 	cout << "img.bmp" << (array2bmp("img.bmp", pixels, dimension, dimension) ? " Saved\n" : " Save Failed\n");
+
+	auto end = system_clock::now();
+
+	auto total = end - start;
+
+	cout << duration_cast<milliseconds>(total).count() << endl;
+
 	return 0;
 }
 
