@@ -306,18 +306,23 @@ int main(int argc, char **argv)
 
 	// *** These parameters can be manipulated in the algorithm to modify work undertaken ***
 	constexpr size_t dimension = 1024;
-	constexpr size_t samples = 1; // Algorithm performs 4 * samples per pixel.
+	constexpr size_t samples = 4; // Algorithm performs 4 * samples per pixel.
 	vector<sphere> spheres
 	{
-		sphere(1e5, vec(1e5 + 1, 40.8, 81.6), vec(), vec(0.75, 0.25, 0.25), reflection_type::DIFFUSE),
-		sphere(1e5, vec(-1e5 + 99, 40.8, 81.6), vec(), vec(0.25, 0.25, 0.75), reflection_type::DIFFUSE),
-		sphere(1e5, vec(50, 40.8, 1e5), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE),
-		sphere(1e5, vec(50, 40.8, -1e5 + 170), vec(), vec(), reflection_type::DIFFUSE),
-		sphere(1e5, vec(50, 1e5, 81.6), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE),
-		sphere(1e5, vec(50, -1e5 + 81.6, 81.6), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE),
-		sphere(16.5, vec(27, 16.5, 47), vec(), vec(1, 1, 1) * 0.999, reflection_type::SPECULAR),
-		sphere(16.5, vec(73, 16.5, 78), vec(), vec(1, 1, 1) * 0.999, reflection_type::REFRACTIVE),
-		sphere(600, vec(50, 681.6 - 0.27, 81.6), vec(12, 12, 12), vec(), reflection_type::DIFFUSE)
+		// Scale, position, light percentage, light type
+		sphere(1e5, vec(1e5 + 1, 40.8, 81.6), vec(), vec(0.75, 0.25, 0.25), reflection_type::DIFFUSE), // Scene
+		sphere(1e5, vec(-1e5 + 99, 40.8, 81.6), vec(), vec(0.25, 0.25, 0.75), reflection_type::DIFFUSE), // Scene
+		sphere(1e5, vec(50, 40.8, 1e5), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE), // Scene
+		sphere(1e5, vec(50, 40.8, -1e5 + 170), vec(), vec(), reflection_type::DIFFUSE), // Scene
+		sphere(1e5, vec(50, 1e5, 81.6), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE), // Scene 
+		sphere(1e5, vec(50, -1e5 + 81.6, 81.6), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE), // Scene
+		//sphere(16.5, vec(27, 16.5, 47), vec(), vec(1, 1, 1) * 0.999, reflection_type::SPECULAR), // Left sphere
+		//sphere(16.5, vec(73, 16.5, 78), vec(), vec(1, 1, 1) * 0.999, reflection_type::REFRACTIVE), // Right sphere
+		//sphere(7.5, vec(10, 7.5, 98), vec(), vec(1, 1, 1) * 0.999, reflection_type::REFRACTIVE), //10
+		//sphere(10, vec(40, 10, 98), vec(), vec(1, 1, 1) * 0.999, reflection_type::SPECULAR), //11
+		//sphere(10, vec(50, 10, 44), vec(), vec(1, 1, 1) * 0.999, reflection_type::REFRACTIVE), //12
+		//sphere(7.5, vec(90, 7.5, 99), vec(), vec(1, 1, 1) * 0.999, reflection_type::SPECULAR), //13
+		sphere(600, vec(50, 681.6 - 0.27, 81.6), vec(12, 12, 12), vec(), reflection_type::DIFFUSE), // Scene
 	};
 	// **************************************************************************************
 
