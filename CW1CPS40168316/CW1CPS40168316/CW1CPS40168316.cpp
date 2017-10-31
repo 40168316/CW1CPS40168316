@@ -300,41 +300,67 @@ bool array2bmp(const std::string &filename, const vector<vec> &pixels, const siz
 	return f.good();
 }
 
-void algorithm(size_t dimension, size_t samples, vec cx, vec cy, vec r, ray& camera, vector<sphere>& spheres, vector<vec>& pixels,
-	unsigned int i, unsigned int range)
-{
-	// Get random number
-	random_device rd;
-	default_random_engine generator(rd());
-	uniform_real_distribution<double> distribution;
-	auto get_random_number = bind(distribution, generator);
+//void futures()
+//{
+//	// Get random number
+//	random_device rd;
+//	default_random_engine generator(rd());
+//	uniform_real_distribution<double> distribution;
+//	auto get_random_number = bind(distribution, generator);
+//
+//	vec r = vec();
+//	for (int i 0; i < iterations; ++i)
+//	{
+//		double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+//		double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+//		vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
+//		r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
+//	}
+//	return r;
+//}
 
-	// For y where 
-	for (int y = i * range; y < (i + 1) * range; ++y)
-	{
-		cout << "Rendering " << dimension << " * " << dimension << "pixels. Samples:" << samples * 4 << " spp (" << 100.0 * y / (dimension - 1) << ")" << endl;
-		for (size_t x = 0; x < dimension; ++x)
-		{
-			for (size_t sy = 0, i = (dimension - y - 1) * dimension + x; sy < 2; ++sy)
-			{
-				for (size_t sx = 0; sx < 2; ++sx)
-				{
-					vec r = vec();
-					for (int s = 0; s < samples; ++s)
-					{
-						double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
-						double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
-						vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
-						r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
-					}
-					//lock_guard<mutex> lock(mut);
-					pixels[i] = pixels[i] + vec(clamp(r.x, 0.0, 1.0), clamp(r.y, 0.0, 1.0), clamp(r.z, 0.0, 1.0)) * 0.25;
-				}
-			}
-		}
-	}
-
-}
+// Method which contains the nested for loop of the algorithm which is used for threads
+//void threadsAlgorithm(size_t dimension, size_t samples, vec cx, vec cy, vec r, ray& camera, vector<sphere>& spheres, vector<vec>& pixels,
+//	unsigned int i, unsigned int iterations)
+//{
+//	// Get random number
+//	random_device rd;
+//	default_random_engine generator(rd());
+//	uniform_real_distribution<double> distribution;
+//	auto get_random_number = bind(distribution, generator);
+//
+//	// For y equals i * iterations where y is less than i + 1 *iterations incrementing y
+//	for (int y = i * iterations; y < (i + 1) * iterations; ++y)
+//	{
+//		// Print out render information
+//		cout << "Rendering " << dimension << " * " << dimension << "pixels. Samples:" << samples * 4 << " spp (" << 100.0 * y / (dimension - 1) << ")" << endl;
+//		for (size_t x = 0; x < dimension; ++x)
+//		{
+//			for (size_t sy = 0, i = (dimension - y - 1) * dimension + x; sy < 2; ++sy)
+//			{
+//				for (size_t sx = 0; sx < 2; ++sx)
+//				{
+//					vec r = vec();
+//					//vector<future<vec>> futures; // then 4 lines below do in sperate mehtod then threads.push
+//					for (int s = 0; s < samples; ++s)
+//					{
+//						double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+//						double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+//						vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
+//						r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
+//						//reutrn r
+//					}
+//					//lock_guard<mutex> lock(mut);
+//					/*for(auto &f: futures)
+//					{
+//						r = r + f.get();
+//					}*/
+//					pixels[i] = pixels[i] + vec(clamp(r.x, 0.0, 1.0), clamp(r.y, 0.0, 1.0), clamp(r.z, 0.0, 1.0)) * 0.25;
+//				}
+//			}
+//		}
+//	}
+//}
 
 int main(int argc, char **argv)
 {
@@ -373,7 +399,9 @@ int main(int argc, char **argv)
 	vec r;
 	vector<vec> pixels(dimension * dimension);
 
-	/*for (size_t y = 0; y < dimension; ++y)
+#pragma omp parallel for 
+	//for (int y = 0; y < dimension; ++y)
+	for (size_t y = 0; y < dimension; ++y)
 	{
 		cout << "Rendering " << dimension << " * " << dimension << "pixels. Samples:" << samples * 4 << " spp (" << 100.0 * y / (dimension - 1) << ")" << endl;
 		for (size_t x = 0; x < dimension; ++x)
@@ -389,31 +417,32 @@ int main(int argc, char **argv)
 						double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
 						vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
 						r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
+						//iterations = samples/num_threads;
 					}
 					pixels[i] = pixels[i] + vec(clamp(r.x, 0.0, 1.0), clamp(r.y, 0.0, 1.0), clamp(r.z, 0.0, 1.0)) * 0.25;
 				}
 			}
 		}
-	}*/
-
-	// Create number of threads hardware natively supports
-	auto num_threads = thread::hardware_concurrency();
-	// Create a vector of threads
-	vector<thread> threads;
-	// Range which is used to determine the number of values to be processed 
-	auto range = dimension / num_threads;
-	// Loop through the number of threads minus 1
-	for (int i = 0; i < num_threads - 1; ++i)
-	{
-		// Add a thread with multiple paramaters
-		threads.push_back(thread(algorithm, dimension, samples, cx, cy, r, camera, spheres, ref(pixels), i, range));
 	}
 
-	// Join the threads 
-	for (auto &t : threads)
-	{
-		t.join();
-	}
+	//// Create number of threads hardware natively supports
+	//auto num_threads = thread::hardware_concurrency();
+	//// Create a vector of threads
+	//vector<thread> threads;
+	//// Iterations which is used to determine the number of values to be processed/split through threads
+	//auto iterations = dimension / num_threads;
+	//// Loop through the number of threads minus 1 - i is id of thread - 
+	//for (int i = 0; i < num_threads - 1; ++i)
+	//{
+	//	// Add a thread to the end of the list with multiple paramaters
+	//	threads.push_back(thread(threadsAlgorithm, dimension, samples, cx, cy, r, camera, spheres, ref(pixels), i, iterations));
+	//}
+
+	//// Join the threads 
+	//for (auto &t : threads)
+	//{
+	//	t.join();
+	//}
 
 	// Confirm if file has been created or not
 	cout << "img.bmp" << (array2bmp("img.bmp", pixels, dimension, dimension) ? " Saved\n" : " Save Failed\n");
