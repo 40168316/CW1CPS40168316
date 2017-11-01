@@ -17,6 +17,8 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <omp.h>
+#include <future>
 
 using namespace std;
 using namespace std::chrono;
@@ -300,67 +302,61 @@ bool array2bmp(const std::string &filename, const vector<vec> &pixels, const siz
 	return f.good();
 }
 
-//void futures()
-//{
-//	// Get random number
-//	random_device rd;
-//	default_random_engine generator(rd());
-//	uniform_real_distribution<double> distribution;
-//	auto get_random_number = bind(distribution, generator);
-//
-//	vec r = vec();
-//	for (int i 0; i < iterations; ++i)
-//	{
-//		double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
-//		double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
-//		vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
-//		r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
-//	}
-//	return r;
-//}
+vec futureAlgorithm(unsigned int iterations, vec cx, vec cy, vec r, ray& camera, vector<sphere>& spheres, size_t i, size_t sx, size_t sy, size_t x, size_t y, size_t dimension, size_t samples)
+{
+	// Get random number
+	random_device rd;
+	default_random_engine generator(rd());
+	uniform_real_distribution<double> distribution;
+	auto get_random_number = bind(distribution, generator);
 
-// Method which contains the nested for loop of the algorithm which is used for threads
-//void threadsAlgorithm(size_t dimension, size_t samples, vec cx, vec cy, vec r, ray& camera, vector<sphere>& spheres, vector<vec>& pixels,
-//	unsigned int i, unsigned int iterations)
-//{
-//	// Get random number
-//	random_device rd;
-//	default_random_engine generator(rd());
-//	uniform_real_distribution<double> distribution;
-//	auto get_random_number = bind(distribution, generator);
-//
-//	// For y equals i * iterations where y is less than i + 1 *iterations incrementing y
-//	for (int y = i * iterations; y < (i + 1) * iterations; ++y)
-//	{
-//		// Print out render information
-//		cout << "Rendering " << dimension << " * " << dimension << "pixels. Samples:" << samples * 4 << " spp (" << 100.0 * y / (dimension - 1) << ")" << endl;
-//		for (size_t x = 0; x < dimension; ++x)
-//		{
-//			for (size_t sy = 0, i = (dimension - y - 1) * dimension + x; sy < 2; ++sy)
-//			{
-//				for (size_t sx = 0; sx < 2; ++sx)
-//				{
-//					vec r = vec();
-//					//vector<future<vec>> futures; // then 4 lines below do in sperate mehtod then threads.push
-//					for (int s = 0; s < samples; ++s)
-//					{
-//						double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
-//						double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
-//						vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
-//						r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
-//						//reutrn r
-//					}
-//					//lock_guard<mutex> lock(mut);
-//					/*for(auto &f: futures)
-//					{
-//						r = r + f.get();
-//					}*/
-//					pixels[i] = pixels[i] + vec(clamp(r.x, 0.0, 1.0), clamp(r.y, 0.0, 1.0), clamp(r.z, 0.0, 1.0)) * 0.25;
-//				}
-//			}
-//		}
-//	}
-//}
+	vec r = vec();
+	for (int i = 0; i < iterations; ++i)
+	{
+		double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+		double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+		vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
+		r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
+	}
+	return r;
+}
+
+ // Method which contains the nested for loop of the algorithm which is used for threads
+void threadsAlgorithm(size_t dimension, size_t samples, vec cx, vec cy, vec r, ray& camera, vector<sphere>& spheres, vector<vec>& pixels,
+	unsigned int i, unsigned int iterations)
+{
+	// Get random number
+	random_device rd;
+	default_random_engine generator(rd());
+	uniform_real_distribution<double> distribution;
+	auto get_random_number = bind(distribution, generator);
+
+	// For y equals i * iterations where y is less than i + 1 *iterations incrementing y
+	for (int y = i * iterations; y < (i + 1) * iterations; ++y)
+	{
+		// Print out render information
+		cout << "Rendering " << dimension << " * " << dimension << "pixels. Samples:" << samples * 4 << " spp (" << 100.0 * y / (dimension - 1) << ")" << endl;
+		for (size_t x = 0; x < dimension; ++x)
+		{
+			for (size_t sy = 0, i = (dimension - y - 1) * dimension + x; sy < 2; ++sy)
+			{
+				for (size_t sx = 0; sx < 2; ++sx)
+				{
+					vec r = vec();
+					for (int s = 0; s < samples; ++s)
+					{
+						double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+						double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+						vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
+						r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
+					}
+					//lock_guard<mutex> lock(mut);
+					pixels[i] = pixels[i] + vec(clamp(r.x, 0.0, 1.0), clamp(r.y, 0.0, 1.0), clamp(r.z, 0.0, 1.0)) * 0.25;
+				}
+			}
+		}
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -399,7 +395,11 @@ int main(int argc, char **argv)
 	vec r;
 	vector<vec> pixels(dimension * dimension);
 
-#pragma omp parallel for 
+	// Create number of threads hardware natively supports
+	auto num_threads = thread::hardware_concurrency(); // f
+	auto iterations = samples / num_threads; // f
+
+//#pragma omp parallel for 
 	//for (int y = 0; y < dimension; ++y)
 	for (size_t y = 0; y < dimension; ++y)
 	{
@@ -411,13 +411,19 @@ int main(int argc, char **argv)
 				for (size_t sx = 0; sx < 2; ++sx)
 				{
 					r = vec();
+					vector<future<vec>> futures; // f
 					for (size_t s = 0; s < samples; ++s)
 					{
-						double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
-						double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
-						vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
-						r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
-						//iterations = samples/num_threads;
+						//double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+						//double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+						//vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
+						//r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
+						futures.push_back(async(futureAlgorithm, iterations, cx, cy, r, camera, spheres, i, sx, sy, x, y, dimension, samples)); //f
+					}
+					// Now get the results from the futures
+					for (auto &f : futures)
+					{
+						r = r + f.get();
 					}
 					pixels[i] = pixels[i] + vec(clamp(r.x, 0.0, 1.0), clamp(r.y, 0.0, 1.0), clamp(r.z, 0.0, 1.0)) * 0.25;
 				}
@@ -434,7 +440,7 @@ int main(int argc, char **argv)
 	//// Loop through the number of threads minus 1 - i is id of thread - 
 	//for (int i = 0; i < num_threads - 1; ++i)
 	//{
-	//	// Add a thread to the end of the list with multiple paramaters
+	//	// Add a thread to the end of the list with multiple paramaters - not a reference has been used to pass in the pixels vector
 	//	threads.push_back(thread(threadsAlgorithm, dimension, samples, cx, cy, r, camera, spheres, ref(pixels), i, iterations));
 	//}
 
