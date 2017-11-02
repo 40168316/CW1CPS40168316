@@ -319,7 +319,7 @@ void threadsAlgorithm(size_t dimension, size_t samples, vec cx, vec cy, vec r, r
 	for (int y = i * iterations; y < (i + 1) * iterations; ++y)
 	{
 		// Print out render information
-		cout << "Rendering " << dimension << " * " << dimension << "pixels. Samples:" << samples * 4 << " spp (" << 100.0 * y / (dimension - 1) << ")" << endl;
+		//cout << "Rendering " << dimension << " * " << dimension << "pixels. Samples:" << samples * 4 << " spp (" << 100.0 * y / (dimension - 1) << ")" << endl;
 		for (size_t x = 0; x < dimension; ++x)
 		{
 			for (size_t sy = 0, i = (dimension - y - 1) * dimension + x; sy < 2; ++sy)
@@ -346,101 +346,107 @@ void threadsAlgorithm(size_t dimension, size_t samples, vec cx, vec cy, vec r, r
 
 int main(int argc, char **argv)
 {
-	// Start timing from this part of the algorithm. This is because some tests require more spheres than others.
-	auto start = system_clock::now();
-
-	random_device rd;
-	default_random_engine generator(rd());
-	uniform_real_distribution<double> distribution;
-	auto get_random_number = bind(distribution, generator);
-
-	// *** These parameters can be manipulated in the algorithm to modify work undertaken ***
-	constexpr size_t dimension = 1024;
-	constexpr size_t samples = 4; // Algorithm performs 4 * samples per pixel.
-	vector<sphere> spheres
+	// For loop which contains the full application and is used to record times to a file
+	for (int testingLoops = 0; testingLoops < 3; ++testingLoops)
 	{
-		// Scale, position, light percentage, light type
-		sphere(1e5, vec(1e5 + 1, 40.8, 81.6), vec(), vec(0.75, 0.25, 0.25), reflection_type::DIFFUSE), // Scene boundry
-		sphere(1e5, vec(-1e5 + 99, 40.8, 81.6), vec(), vec(0.25, 0.25, 0.75), reflection_type::DIFFUSE), // Scene boundry
-		sphere(1e5, vec(50, 40.8, 1e5), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE), // Scene boundry
-		sphere(1e5, vec(50, 40.8, -1e5 + 170), vec(), vec(), reflection_type::DIFFUSE), // Scene boundry
-		sphere(1e5, vec(50, 1e5, 81.6), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE), // Scene boundry 
-		sphere(1e5, vec(50, -1e5 + 81.6, 81.6), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE), // Scene boundry
-		sphere(16.5, vec(27, 16.5, 47), vec(), vec(1, 1, 1) * 0.999, reflection_type::SPECULAR), // Left sphere
-		sphere(16.5, vec(73, 16.5, 78), vec(), vec(1, 1, 1) * 0.999, reflection_type::REFRACTIVE), // Right sphere
-		//sphere(7.5, vec(10, 7.5, 98), vec(), vec(1, 1, 1) * 0.999, reflection_type::REFRACTIVE), //10
-		//sphere(10, vec(40, 10, 98), vec(), vec(1, 1, 1) * 0.999, reflection_type::SPECULAR), //11
-		//sphere(10, vec(50, 10, 44), vec(), vec(1, 1, 1) * 0.999, reflection_type::REFRACTIVE), //12
-		//sphere(7.5, vec(90, 7.5, 99), vec(), vec(1, 1, 1) * 0.999, reflection_type::SPECULAR), //13
-		sphere(600, vec(50, 681.6 - 0.27, 81.6), vec(12, 12, 12), vec(), reflection_type::DIFFUSE), // Scene boudry
-	};
-	// **************************************************************************************
+		// Start timing from this part of the algorithm. This is because some tests require more spheres than others.
+		auto start = system_clock::now();
 
-	ray camera(vec(50, 52, 295.6), vec(0, -0.042612, -1).normal());
-	vec cx = vec(0.5135);
-	vec cy = (cx.cross(camera.direction)).normal() * 0.5135;
-	vec r;
-	vector<vec> pixels(dimension * dimension);
-	int y;
+		random_device rd;
+		default_random_engine generator(rd());
+		uniform_real_distribution<double> distribution;
+		auto get_random_number = bind(distribution, generator);
 
-	// Create number of threads hardware natively supports
-	auto num_threads = thread::hardware_concurrency();
+		// *** These parameters can be manipulated in the algorithm to modify work undertaken ***
+		constexpr size_t dimension = 1024;
+		constexpr size_t samples = 64; // Algorithm performs 4 * samples per pixel.
+		vector<sphere> spheres
+		{
+			// Scale, position, light percentage, light type
+			sphere(1e5, vec(1e5 + 1, 40.8, 81.6), vec(), vec(0.75, 0.25, 0.25), reflection_type::DIFFUSE), // Scene boundry
+			sphere(1e5, vec(-1e5 + 99, 40.8, 81.6), vec(), vec(0.25, 0.25, 0.75), reflection_type::DIFFUSE), // Scene boundry
+			sphere(1e5, vec(50, 40.8, 1e5), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE), // Scene boundry
+			sphere(1e5, vec(50, 40.8, -1e5 + 170), vec(), vec(), reflection_type::DIFFUSE), // Scene boundry
+			sphere(1e5, vec(50, 1e5, 81.6), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE), // Scene boundry 
+			sphere(1e5, vec(50, -1e5 + 81.6, 81.6), vec(), vec(0.75, 0.75, 0.75), reflection_type::DIFFUSE), // Scene boundry
+			sphere(16.5, vec(27, 16.5, 47), vec(), vec(1, 1, 1) * 0.999, reflection_type::SPECULAR), // Left sphere
+			sphere(16.5, vec(73, 16.5, 78), vec(), vec(1, 1, 1) * 0.999, reflection_type::REFRACTIVE), // Right sphere
+			//sphere(7.5, vec(10, 7.5, 98), vec(), vec(1, 1, 1) * 0.999, reflection_type::REFRACTIVE), //10
+			//sphere(10, vec(40, 10, 98), vec(), vec(1, 1, 1) * 0.999, reflection_type::SPECULAR), //11
+			//sphere(10, vec(50, 10, 44), vec(), vec(1, 1, 1) * 0.999, reflection_type::REFRACTIVE), //12
+			//sphere(7.5, vec(90, 7.5, 99), vec(), vec(1, 1, 1) * 0.999, reflection_type::SPECULAR), //13
+			sphere(600, vec(50, 681.6 - 0.27, 81.6), vec(12, 12, 12), vec(), reflection_type::DIFFUSE), // Scene boudry
+		};
+		// **************************************************************************************
 
-//#pragma omp parallel for num_threads(num_threads) private(y)
-//	for (y = 0; y < dimension; ++y)
-//	//for (size_t y = 0; y < dimension; ++y)
-//	{
-//		cout << "Rendering " << dimension << " * " << dimension << "pixels. Samples:" << samples * 4 << " spp (" << 100.0 * y / (dimension - 1) << ")" << endl;
-//		for (size_t x = 0; x < dimension; ++x)
-//		{
-//			for (size_t sy = 0, i = (dimension - y - 1) * dimension + x; sy < 2; ++sy)
-//			{
-//				for (size_t sx = 0; sx < 2; ++sx)
-//				{
-//					vec r = vec(); ////openmp
-//					r = vec(); ////Threads
-//#pragma omp parallel for 
-//					for (int s = 0; s < samples; ++s)
-//					{
-//						double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
-//						double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
-//						vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
-//						r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
-//					}
-//					pixels[i] = pixels[i] + vec(clamp(r.x, 0.0, 1.0), clamp(r.y, 0.0, 1.0), clamp(r.z, 0.0, 1.0)) * 0.25;
-//				}
-//			}
-//		}
-//	}
+		ray camera(vec(50, 52, 295.6), vec(0, -0.042612, -1).normal());
+		vec cx = vec(0.5135);
+		vec cy = (cx.cross(camera.direction)).normal() * 0.5135;
+		vec r;
+		vector<vec> pixels(dimension * dimension);
+		int y;////OpenMP
 
-	// Create number of threads hardware natively supports
-	auto num_threads = thread::hardware_concurrency();
-	// Create a vector of threads
-	vector<thread> threads;
-	// Iterations which is used to determine the number of values to be processed/the amount of work a thread does
-	auto iterations = dimension / num_threads;
-	// Loop through the number of threads minus 1 - i is id/iteration of the thread 
-	for (int i = 0; i < num_threads - 1; ++i)
-	{
-		// Add a thread to the end of the list with multiple paramaters - note a reference has been used to pass in the pixels vector like in the workbook
-		threads.push_back(thread(threadsAlgorithm, dimension, samples, cx, cy, r, camera, spheres, ref(pixels), i, iterations));
+		// Create number of threads hardware natively supports
+		auto num_threads = thread::hardware_concurrency();
+
+		#pragma omp parallel for num_threads(num_threads) private(y)
+		for (y = 0; y < dimension; ++y)
+		//for (size_t y = 0; y < dimension; ++y)
+		{
+			//cout << "Rendering " << dimension << " * " << dimension << "pixels. Samples:" << samples * 4 << " spp (" << 100.0 * y / (dimension - 1) << ")" << endl;
+			for (size_t x = 0; x < dimension; ++x)
+			{
+				for (size_t sy = 0, i = (dimension - y - 1) * dimension + x; sy < 2; ++sy)
+				{
+					for (size_t sx = 0; sx < 2; ++sx)
+					{
+						vec r = vec(); ////openmp
+						//r = vec(); ////Threads
+						for (int s = 0; s < samples; ++s)
+						{
+							double r1 = 2 * get_random_number(), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+							double r2 = 2 * get_random_number(), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+							vec direction = cx * static_cast<double>(((sx + 0.5 + dx) / 2 + x) / dimension - 0.5) + cy * static_cast<double>(((sy + 0.5 + dy) / 2 + y) / dimension - 0.5) + camera.direction;
+							r = r + radiance(spheres, ray(camera.origin + direction * 140, direction.normal()), 0) * (1.0 / samples);
+						}
+						pixels[i] = pixels[i] + vec(clamp(r.x, 0.0, 1.0), clamp(r.y, 0.0, 1.0), clamp(r.z, 0.0, 1.0)) * 0.25;
+					}
+				}
+			}
+		}
+
+		//// Create number of threads hardware natively supports
+		//auto num_threads = thread::hardware_concurrency();
+		//// Create a vector of threads
+		//vector<thread> threads;
+		//// Iterations which is used to determine the number of values to be processed/the amount of work a thread does
+		//auto iterations = dimension / num_threads;
+		//// Loop through the number of threads minus 1 - i is id/iteration of the thread 
+		//for (int i = 0; i < num_threads - 1; ++i)
+		//{
+		//	// Add a thread to the end of the list with multiple paramaters - note a reference has been used to pass in the pixels vector like in the workbook
+		//	threads.push_back(thread(threadsAlgorithm, dimension, samples, cx, cy, r, camera, spheres, ref(pixels), i, iterations));
+		//}
+
+		//// Join the threads 
+		//for (auto &t : threads)
+		//{
+		//	t.join();
+		//}
+
+		// Confirm if file has been created or not
+		cout << "img.bmp" << (array2bmp("img.bmp", pixels, dimension, dimension) ? " Saved\n" : " Save Failed\n");
+
+		// End timing here as the algorithm has complete. 
+		auto end = system_clock::now();
+
+		// Get total time
+		auto total = end - start;
+		// Create output file to output data too
+		ofstream data("data.csv", ios_base::app);
+		// Convert time to milliseconds 
+		data << duration_cast<milliseconds>(total).count() << endl;
 	}
-
-	// Join the threads 
-	for (auto &t : threads)
-	{
-		t.join();
-	}
-
-	// Confirm if file has been created or not
-	cout << "img.bmp" << (array2bmp("img.bmp", pixels, dimension, dimension) ? " Saved\n" : " Save Failed\n");
-
-	// End timing here as the algorithm has complete. 
-	auto end = system_clock::now();
-	// Get total time
-	auto total = end - start;
-	// Convert time to milliseconds 
-	cout << duration_cast<milliseconds>(total).count() << endl;
 
 	return 0;
 }
